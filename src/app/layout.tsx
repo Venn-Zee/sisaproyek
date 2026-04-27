@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "leaflet/dist/leaflet.css";
 import Navbar from "@/components/Navbar";
+import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {
   title: "SisaProyek — B2B Marketplace Limbah Konstruksi Indonesia",
@@ -24,8 +26,10 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className="antialiased">
-        <Navbar />
-        <main>{children}</main>
+        <AuthProvider>
+          <Navbar />
+          <main>{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );

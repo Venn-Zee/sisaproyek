@@ -299,3 +299,49 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ listing: toApiListing(data as DbListing) }, { status: 201 });
 }
+
+// ─── PUT /api/listings ────────────────────────────────────────────────────────
+export async function PUT(request: NextRequest) {
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const { id, sellerName, price, condition, description, priceUnit } = body;
+
+  if (!id || !sellerName) {
+    return NextResponse.json({ error: 'ID dan sellerName wajib disertakan' }, { status: 400 });
+  }
+
+  const updateData: Partial<DbListing> = {};
+  if (price !== undefined) updateData.price = parseFloat(String(price)) || 0;
+  if (condition !== undefined) updateData.condition = String(condition);
+  if (description !== undefined) updateData.description = String(description);
+  if (priceUnit !== undefined) updateData.price_unit = String(priceUnit);
+
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json({ error: 'Tidak ada data untuk diupdate' }, { status: 400 });
+  }
+
+  // Update only if seller_name matches (authorization check)
+  const { data, error } = await supabase
+    .from('listings')
+    .update(updateData)
+    .eq('id', id)
+    .eq('seller_name', sellerName)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[PUT /api/listings]', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (!data) {
+    return NextResponse.json({ error: 'Listing tidak ditemukan atau Anda tidak memiliki akses' }, { status: 404 });
+  }
+
+  return NextResponse.json({ listing: toApiListing(data as DbListing) });
+}

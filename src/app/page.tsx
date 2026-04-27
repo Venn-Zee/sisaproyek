@@ -18,6 +18,16 @@ import {
   Truck,
 } from "lucide-react";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface DashboardStats {
+  totalWasteSaved: number;
+  co2Reduced: number;
+  totalTransactions: number;
+  umkmHelped: number;
+  totalListings: number;
+  activeCities: number;
+}
+
 // ─── Animated Counter ────────────────────────────────────────────────────────
 function AnimatedCounter({
   end,
@@ -35,6 +45,11 @@ function AnimatedCounter({
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
   const started = useRef(false);
+
+  useEffect(() => {
+    started.current = false;
+    setCount(0);
+  }, [end]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -186,6 +201,65 @@ function TestimonialCard({
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+
+  useEffect(() => {
+    fetch("/api/dashboard")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.stats) setStats(d.stats);
+      })
+      .catch(() => {
+        // Fallback to baseline numbers if API fails
+        setStats({
+          totalWasteSaved: 847,
+          co2Reduced: 339,
+          totalTransactions: 312,
+          umkmHelped: 89,
+          totalListings: 0,
+          activeCities: 28,
+        });
+      });
+  }, []);
+
+  // Derive the stat cards from live data (or null while loading)
+  const statCards = stats
+    ? [
+        {
+          value: stats.totalWasteSaved,
+          suffix: " Ton",
+          label: "Material Diselamatkan",
+          color: "#10b981",
+          icon: Leaf,
+          decimals: 1,
+        },
+        {
+          value: stats.co2Reduced,
+          suffix: " Ton",
+          label: "CO₂ Dikurangi",
+          color: "#06b6d4",
+          icon: Globe,
+          decimals: 1,
+        },
+        {
+          value: stats.totalTransactions,
+          suffix: "",
+          label: "Transaksi Selesai",
+          color: "#6366f1",
+          icon: TrendingDown,
+          decimals: 0,
+        },
+        {
+          value: stats.umkmHelped,
+          suffix: "+",
+          label: "UMKM Terbantu",
+          color: "#f59e0b",
+          icon: Users,
+          decimals: 0,
+        },
+      ]
+    : null;
+
   return (
     <div style={{ paddingTop: "68px" }}>
       {/* ── Hero Section ── */}
@@ -311,7 +385,7 @@ export default function HomePage() {
           >
             {[
               { icon: Shield, label: "Terverifikasi" },
-              { icon: Globe, label: "28 Kota Aktif" },
+              { icon: Globe, label: stats ? `${stats.activeCities} Kota Aktif` : "28 Kota Aktif" },
               { icon: Truck, label: "Logistik Terintegrasi" },
             ].map(({ icon: Icon, label }) => (
               <div
@@ -347,73 +421,53 @@ export default function HomePage() {
               gap: "24px",
             }}
           >
-            {[
-              {
-                value: 847,
-                suffix: " Ton",
-                label: "Material Diselamatkan",
-                color: "#10b981",
-                icon: Leaf,
-              },
-              {
-                value: 339,
-                suffix: " Ton",
-                label: "CO₂ Dikurangi",
-                color: "#06b6d4",
-                icon: Globe,
-              },
-              {
-                value: 312,
-                suffix: "",
-                label: "Transaksi Selesai",
-                color: "#6366f1",
-                icon: TrendingDown,
-              },
-              {
-                value: 89,
-                suffix: "+",
-                label: "UMKM Terbantu",
-                color: "#f59e0b",
-                icon: Users,
-              },
-            ].map(({ value, suffix, label, color, icon: Icon }) => (
-              <div
-                key={label}
-                className="stat-card"
-                style={{ textAlign: "center" }}
-              >
-                <div
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                    borderRadius: "12px",
-                    background: `${color}18`,
-                    border: `1px solid ${color}30`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 12px",
-                  }}
-                >
-                  <Icon size={22} color={color} />
-                </div>
-                <div
-                  style={{
-                    fontSize: "36px",
-                    fontWeight: 900,
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    color,
-                    letterSpacing: "-1px",
-                    marginBottom: "4px",
-                  }}
-                >
-                  <AnimatedCounter end={value} suffix={suffix} />
-                </div>
-                <p style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>
-                  {label}
-                </p>
-              </div>
-            ))}
+            {statCards
+              ? statCards.map(({ value, suffix, label, color, icon: Icon, decimals }) => (
+                  <div
+                    key={label}
+                    className="stat-card"
+                    style={{ textAlign: "center" }}
+                  >
+                    <div
+                      style={{
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "12px",
+                        background: `${color}18`,
+                        border: `1px solid ${color}30`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        margin: "0 auto 12px",
+                      }}
+                    >
+                      <Icon size={22} color={color} />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "36px",
+                        fontWeight: 900,
+                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        color,
+                        letterSpacing: "-1px",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      <AnimatedCounter end={value} suffix={suffix} decimals={decimals} />
+                    </div>
+                    <p style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>
+                      {label}
+                    </p>
+                  </div>
+                ))
+              : // Skeleton placeholders while loading
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="stat-card shimmer"
+                    style={{ textAlign: "center", minHeight: "140px" }}
+                  />
+                ))}
           </div>
         </div>
       </section>
@@ -695,14 +749,18 @@ export default function HomePage() {
               </h2>
               <p
                 style={{
-                  color: "#64748b",
+                  color: "#94a3b8",
                   fontSize: "16px",
                   marginBottom: "36px",
                   lineHeight: 1.7,
                 }}
               >
-                Bergabung dengan 312+ kontraktor dan UMKM yang sudah merasakan manfaat
-                ekonomi dan lingkungan dari SisaProyek.
+                Bergabung dengan{" "}
+                <strong style={{ color: "#34d399" }}>
+                  {stats ? `${stats.totalTransactions}+` : "312+"}
+                </strong>{" "}
+                kontraktor dan UMKM yang sudah merasakan manfaat ekonomi dan
+                lingkungan dari SisaProyek.
               </p>
               <div
                 style={{
@@ -744,11 +802,11 @@ export default function HomePage() {
         }}
       >
         <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-          <p style={{ fontSize: "13px", color: "#334155" }}>
+          <p style={{ fontSize: "13px", color: "#64748b" }}>
             © 2026 SisaProyek. Circular Economy untuk Konstruksi Indonesia.
             Mengurangi 30% limbah konstruksi, satu transaksi pada satu waktu.
           </p>
-          <p style={{ fontSize: "11px", color: "#1e293b", marginTop: "8px" }}>
+          <p style={{ fontSize: "11px", color: "#475569", marginTop: "8px" }}>
             Industri konstruksi menyumbang 30% limbah global. Bersama, kita ubah itu.
           </p>
         </div>

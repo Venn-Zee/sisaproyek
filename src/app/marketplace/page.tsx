@@ -1,13 +1,14 @@
 "use client";
 import { useState, useMemo, useCallback, lazy, Suspense, useEffect } from "react";
-import type { MaterialCategory, MaterialListing } from "@/lib/mockData";
+import type { MaterialCategory, MaterialListing, MaterialCondition } from "@/lib/mockData";
 import { categoryColors, categoryLabels, categoryIcons } from "@/lib/mockData";
 import MaterialCard from "@/components/MaterialCard";
 import FilterPanel from "@/components/FilterPanel";
+import { useAuth } from "@/lib/auth-context";
 import {
-  X, MapPin, Leaf, Phone,
+  X, MapPin, Phone,
   MessageCircle, CheckCircle,
-  Building2, Loader2
+  Building2, Loader2, LogIn, Lock, Edit2, Save
 } from "lucide-react";
 
 const MarketplaceMap = lazy(() => import("@/components/MarketplaceMap"));
@@ -40,9 +41,11 @@ function CardSkeleton() {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function MarketplacePage() {
+  const { user } = useAuth();
   const [listings, setListings]         = useState<MaterialListing[]>([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState<string | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const [search, setSearch]             = useState("");
   const [selectedCategories, setSelectedCategories] = useState<MaterialCategory[]>([]);
@@ -51,7 +54,6 @@ export default function MarketplacePage() {
   const [maxPrice, setMaxPrice]         = useState(20000000);
   const [selectedId, setSelectedId]     = useState<string | null>(null);
   const [showDetail, setShowDetail]     = useState(false);
-  const [role, setRole]                 = useState<"buyer" | "seller">("buyer");
 
   // ── Fetch all listings from API on mount ───────────────────────────────────
   useEffect(() => {
@@ -151,38 +153,20 @@ export default function MarketplacePage() {
           )}
         </div>
 
-        {/* Role Toggle */}
-        <div
-          style={{
-            display: "flex",
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: "10px",
-            padding: "3px",
-            gap: "2px",
-          }}
-        >
-          {(["buyer", "seller"] as const).map((r) => (
-            <button
-              key={r}
-              onClick={() => setRole(r)}
-              id={`role-${r}`}
-              style={{
-                padding: "6px 14px",
-                borderRadius: "8px",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: 600,
-                background: role === r ? "linear-gradient(135deg,#10b981,#059669)" : "transparent",
-                color: role === r ? "white" : "#64748b",
-                transition: "all 0.2s ease",
-              }}
-            >
-              {r === "buyer" ? "🏠 Saya Pembeli" : "🏗️ Saya Kontraktor"}
-            </button>
-          ))}
-        </div>
+        {/* Auth status */}
+        {user ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "10px", padding: "6px 12px" }}>
+            <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981" }} />
+            <span style={{ fontSize: "12px", color: "#34d399", fontWeight: 600 }}>Anda sudah login</span>
+          </div>
+        ) : (
+          <button
+            onClick={() => document.getElementById("btn-login-nav")?.click()}
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 14px", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "10px", color: "#34d399", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}
+          >
+            <LogIn size={13} /> Login untuk hubungi penjual
+          </button>
+        )}
       </div>
 
       {/* ── Main Layout ── */}
@@ -343,8 +327,48 @@ export default function MarketplacePage() {
       {showDetail && selectedListing && (
         <DetailDrawer
           listing={selectedListing}
+          isLoggedIn={!!user}
           onClose={() => { setShowDetail(false); setSelectedId(null); }}
+          onRequestLogin={() => setShowLoginPrompt(true)}
+          onUpdate={(updatedListing) => {
+            setListings(listings.map(l => l.id === updatedListing.id ? updatedListing : l));
+          }}
         />
+      )}
+
+      {/* ── Login Prompt Modal ── */}
+      {showLoginPrompt && (
+        <div
+          onClick={() => setShowLoginPrompt(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: "linear-gradient(145deg,#0f1d2e,#111827)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "20px", padding: "36px 32px", maxWidth: "380px", width: "100%", textAlign: "center", boxShadow: "0 40px 80px rgba(0,0,0,0.6)" }}
+          >
+            <div style={{ width: "56px", height: "56px", borderRadius: "16px", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <Lock size={24} color="#10b981" />
+            </div>
+            <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: "20px", fontWeight: 800, color: "#f1f5f9", marginBottom: "8px" }}>Login Diperlukan</h3>
+            <p style={{ fontSize: "14px", color: "#64748b", lineHeight: 1.6, marginBottom: "24px" }}>Untuk menghubungi penjual, kamu perlu login terlebih dahulu ke akun SisaProyek kamu.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <button
+                id="login-prompt-btn"
+                onClick={() => { setShowLoginPrompt(false); document.getElementById("btn-login-nav")?.click(); }}
+                style={{ width: "100%", padding: "13px", background: "linear-gradient(135deg,#10b981,#059669)", color: "white", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: "0 4px 16px rgba(16,185,129,0.3)" }}
+              >
+                <LogIn size={16} /> Masuk ke Akun
+              </button>
+              <button
+                onClick={() => { setShowLoginPrompt(false); document.getElementById("btn-signup-nav")?.click(); }}
+                style={{ width: "100%", padding: "13px", background: "transparent", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+              >
+                Daftar Gratis
+              </button>
+              <button onClick={() => setShowLoginPrompt(false)} style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: "13px", marginTop: "4px" }}>Tutup</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`
@@ -356,8 +380,52 @@ export default function MarketplacePage() {
 }
 
 // ─── Detail Drawer ─────────────────────────────────────────────────────────────
-function DetailDrawer({ listing, onClose }: { listing: MaterialListing; onClose: () => void }) {
+function DetailDrawer({ listing, isLoggedIn, onClose, onRequestLogin, onUpdate }: { listing: MaterialListing; isLoggedIn: boolean; onClose: () => void; onRequestLogin: () => void; onUpdate: (l: MaterialListing) => void }) {
+  const { profile } = useAuth();
   const color = categoryColors[listing.category];
+
+  const isOwner = profile?.nama_perusahaan === listing.seller.name && profile?.nama_perusahaan !== undefined;
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    price: listing.price,
+    priceUnit: listing.priceUnit,
+    condition: listing.condition,
+    description: listing.description,
+  });
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/listings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: listing.id,
+          sellerName: profile?.nama_perusahaan,
+          ...editForm,
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan');
+      
+      onUpdate(data.listing);
+      setIsEditing(false);
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'Terjadi kesalahan saat menyimpan');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px",
+    padding: "10px 12px", color: "#f1f5f9", fontSize: "13px",
+    outline: "none", marginBottom: "12px", fontFamily: "'Inter', sans-serif"
+  };
 
   return (
     <div
@@ -436,7 +504,7 @@ function DetailDrawer({ listing, onClose }: { listing: MaterialListing; onClose:
             { label: "Kondisi", value: listing.condition, icon: "✅" },
             {
               label: "Harga",
-              value: listing.price === 0 ? "GRATIS" : `Rp ${listing.price.toLocaleString("id-ID")}`,
+              value: listing.price === 0 ? "GRATIS" : `Rp ${listing.price.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
               icon: "💰",
               highlight: true,
             },
@@ -458,40 +526,63 @@ function DetailDrawer({ listing, onClose }: { listing: MaterialListing; onClose:
                 {value}
               </p>
               {label === "Harga" && listing.price > 0 && (
-                <p style={{ fontSize: "9px", color: "#475569" }}>/ {listing.priceUnit}</p>
+                <p style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>/ {listing.priceUnit}</p>
               )}
             </div>
           ))}
         </div>
 
-        {/* Status */}
-        <div style={{ marginBottom: "20px" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              background: listing.status === "Tersedia" ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.12)",
-              border: `1px solid ${listing.status === "Tersedia" ? "rgba(16,185,129,0.25)" : "rgba(245,158,11,0.25)"}`,
-              borderRadius: "100px",
-              padding: "6px 14px",
-            }}
-          >
-            <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: listing.status === "Tersedia" ? "#10b981" : "#f59e0b" }} />
-            <span style={{ fontSize: "12px", fontWeight: 700, color: listing.status === "Tersedia" ? "#34d399" : "#fbbf24" }}>
-              {listing.status}
-            </span>
+        {/* Status & Condition */}
+        {isEditing ? (
+          <div style={{ marginBottom: "20px", display: "flex", gap: "12px" }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: "block", fontSize: "11px", color: "#475569", marginBottom: "6px", fontWeight: 600 }}>KONDISI</label>
+              <select value={editForm.condition} onChange={e => setEditForm({...editForm, condition: e.target.value as MaterialCondition})} style={inputStyle}>
+                {["Sangat Baik", "Baik", "Cukup"].map(c => <option key={c} value={c} style={{ background: "#111827" }}>{c}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: "block", fontSize: "11px", color: "#475569", marginBottom: "6px", fontWeight: 600 }}>HARGA</label>
+              <input type="number" value={editForm.price} onChange={e => setEditForm({...editForm, price: Number(e.target.value)})} style={inputStyle} />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div style={{ marginBottom: "20px" }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                background: listing.status === "Tersedia" ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.12)",
+                border: `1px solid ${listing.status === "Tersedia" ? "rgba(16,185,129,0.25)" : "rgba(245,158,11,0.25)"}`,
+                borderRadius: "100px",
+                padding: "6px 14px",
+              }}
+            >
+              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: listing.status === "Tersedia" ? "#10b981" : "#f59e0b" }} />
+              <span style={{ fontSize: "12px", fontWeight: 700, color: listing.status === "Tersedia" ? "#34d399" : "#fbbf24" }}>
+                {listing.status}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Description */}
         <div style={{ marginBottom: "20px" }}>
           <h4 style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
             Deskripsi
           </h4>
-          <p style={{ fontSize: "13px", color: "#94a3b8", lineHeight: 1.7 }}>
-            {listing.description}
-          </p>
+          {isEditing ? (
+            <textarea
+              value={editForm.description}
+              onChange={e => setEditForm({...editForm, description: e.target.value})}
+              style={{ ...inputStyle, minHeight: "100px", resize: "vertical" }}
+            />
+          ) : (
+            <p style={{ fontSize: "13px", color: "#94a3b8", lineHeight: 1.7 }}>
+              {listing.description}
+            </p>
+          )}
         </div>
 
         {/* Location */}
@@ -509,7 +600,7 @@ function DetailDrawer({ listing, onClose }: { listing: MaterialListing; onClose:
           </h4>
           <p style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "4px" }}>{listing.location.address}</p>
           <p style={{ fontSize: "12px", color: "#64748b" }}>{listing.location.city}, {listing.location.province}</p>
-          <p style={{ fontSize: "10px", color: "#334155", marginTop: "6px" }}>
+          <p style={{ fontSize: "10px", color: "#475569", marginTop: "6px" }}>
             🌐 {listing.location.lat.toFixed(4)}, {listing.location.lng.toFixed(4)}
           </p>
         </div>
@@ -571,38 +662,60 @@ function DetailDrawer({ listing, onClose }: { listing: MaterialListing; onClose:
         </div>
 
         {/* CTA Buttons */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          <button
-            id="detail-contact-btn"
-            style={{
-              width: "100%", padding: "14px",
-              background: "linear-gradient(135deg, #10b981, #059669)",
-              color: "white", fontWeight: 700, fontSize: "14px",
-              border: "none", borderRadius: "12px", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-            }}
+        {isOwner ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {isEditing ? (
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button onClick={() => setIsEditing(false)} style={{ flex: 1, padding: "14px", background: "transparent", color: "#94a3b8", fontWeight: 600, fontSize: "14px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", cursor: "pointer" }}>
+                  Batal
+                </button>
+                <button onClick={handleSave} disabled={isSaving} style={{ flex: 1, padding: "14px", background: "linear-gradient(135deg, #10b981, #059669)", color: "white", fontWeight: 700, fontSize: "14px", border: "none", borderRadius: "12px", cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", opacity: isSaving ? 0.7 : 1 }}>
+                  {isSaving ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <Save size={16} />} Simpan
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsEditing(true)}
+                style={{ width: "100%", padding: "14px", background: "rgba(16,185,129,0.1)", color: "#34d399", fontWeight: 700, fontSize: "14px", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "12px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+              >
+                <Edit2 size={16} /> Edit Material
+              </button>
+            )}
+          </div>
+        ) : isLoggedIn ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <button
+              id="detail-contact-btn"
+              style={{ width: "100%", padding: "14px", background: "linear-gradient(135deg, #10b981, #059669)", color: "white", fontWeight: 700, fontSize: "14px", border: "none", borderRadius: "12px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+            >
+              <Phone size={16} /> Hubungi Penjual
+            </button>
+            <button
+              id="detail-inquiry-btn"
+              style={{ width: "100%", padding: "14px", background: "transparent", color: "#94a3b8", fontWeight: 600, fontSize: "14px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+            >
+              <MessageCircle size={16} /> Kirim Penawaran
+            </button>
+          </div>
+        ) : (
+          <div
+            style={{ border: "1px solid rgba(16,185,129,0.2)", borderRadius: "14px", padding: "20px", textAlign: "center", background: "rgba(16,185,129,0.04)" }}
           >
-            <Phone size={16} />
-            Hubungi Penjual
-          </button>
-          <button
-            id="detail-inquiry-btn"
-            style={{
-              width: "100%", padding: "14px",
-              background: "transparent", color: "#94a3b8",
-              fontWeight: 600, fontSize: "14px",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: "12px", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-            }}
-          >
-            <MessageCircle size={16} />
-            Kirim Penawaran
-          </button>
-        </div>
+            <Lock size={22} color="#10b981" style={{ margin: "0 auto 10px" }} />
+            <p style={{ fontSize: "13px", fontWeight: 700, color: "#f1f5f9", marginBottom: "6px" }}>Login untuk menghubungi penjual</p>
+            <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "14px", lineHeight: 1.5 }}>Buat akun gratis atau masuk untuk mengakses kontak penjual dan kirim penawaran.</p>
+            <button
+              id="detail-login-cta"
+              onClick={onRequestLogin}
+              style={{ width: "100%", padding: "12px", background: "linear-gradient(135deg,#10b981,#059669)", color: "white", border: "none", borderRadius: "10px", fontSize: "13px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+            >
+              <LogIn size={15} /> Masuk / Daftar Gratis
+            </button>
+          </div>
+        )}
 
         {/* Posted date */}
-        <p style={{ fontSize: "11px", color: "#334155", textAlign: "center", marginTop: "16px" }}>
+        <p style={{ fontSize: "11px", color: "#475569", textAlign: "center", marginTop: "16px" }}>
           📅 Diposting {listing.postedAt} • Berlaku hingga {listing.expiresAt}
         </p>
         <p style={{ fontSize: "11px", color: "#334155", textAlign: "center" }}>

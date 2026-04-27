@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Search, SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { Search, X, ChevronDown } from "lucide-react";
 import type { MaterialCategory } from "@/lib/mockData";
 import { categoryLabels, categoryIcons, categoryColors } from "@/lib/mockData";
 
@@ -43,13 +43,13 @@ export default function FilterPanel({
   const [showPrice, setShowPrice] = useState(false);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
       {/* Search */}
       <div style={{ position: "relative" }}>
         <Search
           size={15}
           color="#64748b"
-          style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }}
+          style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
         />
         <input
           type="text"
@@ -89,11 +89,11 @@ export default function FilterPanel({
               if (city) onCityChange(city.label, city.coords);
             }}
             className="input-field"
-            style={{ appearance: "none", paddingRight: "32px", cursor: "pointer" }}
+            style={{ appearance: "none", paddingRight: "32px", cursor: "pointer", color: "#94a3b8" }}
             id="filter-city"
           >
             {CITIES.map((c) => (
-              <option key={c.label} value={c.label} style={{ background: "#111827" }}>
+              <option key={c.label} value={c.label} style={{ background: "#111827", color: "#f1f5f9" }}>
                 {c.label}
               </option>
             ))}
@@ -111,7 +111,7 @@ export default function FilterPanel({
         <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "8px" }}>
           Kategori Material
         </label>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
           {CATEGORIES.map((cat) => {
             const active = selectedCategories.includes(cat);
             const color = categoryColors[cat];
@@ -122,21 +122,28 @@ export default function FilterPanel({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "4px",
-                  padding: "5px 10px",
-                  borderRadius: "100px",
+                  gap: "6px",
+                  padding: "8px 10px",
+                  borderRadius: "10px",
                   border: `1px solid ${active ? color + "60" : "rgba(255,255,255,0.08)"}`,
                   background: active ? `${color}18` : "rgba(255,255,255,0.03)",
                   color: active ? color : "#64748b",
-                  fontSize: "11px",
+                  fontSize: "12px",
                   fontWeight: active ? 700 : 500,
                   cursor: "pointer",
                   transition: "all 0.2s ease",
+                  textAlign: "left",
+                  width: "100%",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  textOverflow: "ellipsis",
                 }}
                 id={`filter-cat-${cat}`}
               >
-                <span>{categoryIcons[cat]}</span>
-                {categoryLabels[cat].split(" ")[0]}
+                <span style={{ fontSize: "14px", flexShrink: 0 }}>{categoryIcons[cat]}</span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {categoryLabels[cat]}
+                </span>
               </button>
             );
           })}
@@ -159,7 +166,7 @@ export default function FilterPanel({
           <ChevronDown
             size={14}
             color="#475569"
-            style={{ transform: showPrice ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }}
+            style={{ transform: showPrice ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s", flexShrink: 0 }}
           />
         </button>
         {showPrice && (
@@ -167,7 +174,7 @@ export default function FilterPanel({
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
               <span style={{ fontSize: "12px", color: "#64748b" }}>Gratis</span>
               <span style={{ fontSize: "12px", color: "#fbbf24", fontWeight: 700 }}>
-                {maxPrice === 20000000 ? "Semua" : `Rp ${maxPrice.toLocaleString("id-ID")}`}
+                {maxPrice === 20000000 ? "Semua" : `Rp ${maxPrice.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </span>
             </div>
             <input

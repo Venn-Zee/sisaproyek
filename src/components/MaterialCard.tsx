@@ -43,6 +43,7 @@ export default function MaterialCard({ listing, isSelected, onClick }: Props) {
         transition: "all 0.25s ease",
         position: "relative",
         overflow: "hidden",
+        flexShrink: 0,
       }}
     >
       {/* Left accent bar */}
@@ -82,9 +83,10 @@ export default function MaterialCard({ listing, isSelected, onClick }: Props) {
                 borderRadius: "100px",
                 padding: "2px 8px",
                 marginBottom: "6px",
+                maxWidth: "100%",
               }}
             >
-              <span style={{ fontSize: "10px" }}>
+              <span style={{ fontSize: "10px", flexShrink: 0 }}>
                 {categoryIcons[listing.category]}
               </span>
               <span
@@ -94,6 +96,9 @@ export default function MaterialCard({ listing, isSelected, onClick }: Props) {
                   color,
                   letterSpacing: "0.5px",
                   textTransform: "uppercase",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {categoryLabels[listing.category]}
@@ -183,9 +188,9 @@ export default function MaterialCard({ listing, isSelected, onClick }: Props) {
                     color: "#fbbf24",
                   }}
                 >
-                  Rp {listing.price.toLocaleString("id-ID")}
+                  Rp {listing.price.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
-                <span style={{ fontSize: "10px", color: "#64748b" }}>
+                <span style={{ fontSize: "10px", color: "#94a3b8" }}>
                   {" "}
                   / {listing.priceUnit}
                 </span>

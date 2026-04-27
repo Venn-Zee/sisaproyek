@@ -86,7 +86,7 @@ export default function MarketplaceMap({
         const priceLabel =
           listing.price === 0
             ? '<span style="color:#34d399;font-weight:700;font-size:16px;">GRATIS</span>'
-            : `<span style="color:#fbbf24;font-weight:700;font-size:15px;">Rp ${listing.price.toLocaleString("id-ID")}<span style="font-size:11px;color:#64748b;font-weight:400"> / ${listing.priceUnit}</span></span>`;
+            : `<span style="color:#fbbf24;font-weight:700;font-size:15px;">Rp ${listing.price.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span style="font-size:11px;color:#64748b;font-weight:400"> / ${listing.priceUnit}</span></span>`;
 
         const statusColor =
           listing.status === "Tersedia"
